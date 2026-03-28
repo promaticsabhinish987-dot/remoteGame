@@ -2,6 +2,7 @@
 <html>
 <head>
   <title>Remote Game</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
 <style>
 /* =====================
@@ -51,6 +52,8 @@ html, body {
   padding: 16px;
 }
 
+
+
 /* Top input section */
 #remoteUI input {
   width: 100%;
@@ -59,6 +62,16 @@ html, body {
   margin-bottom: 10px;
   border-radius: 10px;
   border: 1px solid #ccc;
+}
+
+#remoteUI, 
+#remoteUI button {
+  user-select: none;
+  -webkit-user-select: none; /* iOS Safari */
+}
+
+#remoteUI {
+  -webkit-touch-callout: none;
 }
 
 #remoteUI .connect {
@@ -139,6 +152,8 @@ html, body {
   display: block;
   background: black;
 }
+
+
 </style>
 
 <body>
