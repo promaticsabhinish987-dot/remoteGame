@@ -199,7 +199,10 @@ html, body {
 <script src="/socket.io/socket.io.js"></script>
 
 <script>
-const socket = io();
+const socket = io({
+  transports: ["websocket"] // 🔥 ADDED: faster, no polling fallback
+});
+
 let roomId = null;
 let isMonitor = false;
 
@@ -214,27 +217,63 @@ function startMonitor() {
 
   socket.emit("createRoom");
 }
-// 🔥 ADD THIS
+
 socket.on("errorRoom", (msg) => {
-  alert(msg); // invalid room
+  alert(msg);
 });
 
-// 🔥 ADD THIS (outside functions)
-setInterval(() => {
-  if (roomId) {
-    socket.emit("input", { roomId, keys });
-  }
-}, 50); // 20 FPS network tick
 
+// ❌ OLD POLLING (KEPT BUT DISABLED)
+// setInterval(() => {
+//   if (roomId) {
+//     socket.emit("input", { roomId, keys });
+//   }
+// }, 50);
+
+
+// =====================
+// 🔥 NEW FAST INPUT SYSTEM (ADDED)
+// =====================
+
+const keys = {}; // already exists
+let remoteKeys = {}; // already exists
+
+function press(key) {
+  if (!keys[key]) { // 🔥 avoid duplicate sends
+    keys[key] = true;
+
+    // 🔥 NEW EVENT-DRIVEN SEND
+    socket.emit("input_fast", { roomId, key, state: "down" });
+  }
+
+  // ❌ OLD (disabled)
+  // keys[key] = true;
+}
+
+function release(key) {
+  if (keys[key]) {
+    keys[key] = false;
+
+    // 🔥 NEW EVENT-DRIVEN SEND
+    socket.emit("input_fast", { roomId, key, state: "up" });
+  }
+
+  // ❌ OLD (disabled)
+  // keys[key] = false;
+}
+
+
+// =====================
+// SOCKET EVENTS
+// =====================
 
 socket.on("roomCreated", id => {
   roomId = id;
   alert("Room ID: " + roomId);
-  console.log("Room ID: " + roomId)
+
   setTimeout(() => {
-   startGame(); // start your game
+    startGame();
   }, 10000);
-  
 });
 
 function showRemote() {
@@ -251,39 +290,22 @@ socket.on("joinedRoom", () => {
   alert("Connected to monitor");
 });
 
-// =====================
-// REMOTE INPUT
-// =====================
 
-const keys = {};
+// ❌ OLD RECEIVE (KEPT BUT DISABLED)
+// socket.on("input", keys => {
+//   remoteKeys = keys;
+// });
 
-function press(key) {
-  keys[key] = true;
-//   sendInput();
-}
 
-function release(key) {
-  keys[key] = false;
-//   sendInput();
-}
-
-function sendInput() {
-  socket.emit("input", { roomId, keys });
-}
-
-// =====================
-// MONITOR GAME
-// =====================
-
-let remoteKeys = {};
-
-// 🔥 WITH (ensures correct object)
-socket.on("input", keys => {
-  remoteKeys = keys;
+// 🔥 NEW FAST RECEIVE (ADDED)
+socket.on("input_fast", ({ key, state }) => {
+  remoteKeys[key] = (state === "down");
 });
 
-// ===== YOUR GAME (modified input) =====
 
+// =====================
+// GAME (UNCHANGED)
+// =====================
 function startGame(){
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
@@ -311,7 +333,6 @@ function spawnEnemy(){
   });
 }
 
-// 🔥 ADD THIS
 function resetGame(){
   player.x = 100;
   player.y = 100;
@@ -335,8 +356,6 @@ for(let i=0;i<3;i++) spawnEnemy();
 for(let i=0;i<5;i++) spawnFood();
 
 function update(){
-
-  // 🔥 USE REMOTE INPUT INSTEAD OF KEYBOARD
   if (remoteKeys["ArrowRight"]) player.x += player.speed;
   if (remoteKeys["ArrowLeft"]) player.x -= player.speed;
   if (remoteKeys["ArrowUp"]) player.y -= player.speed;
@@ -361,7 +380,7 @@ function update(){
 
   enemies.forEach(enemy=>{
     if(isColliding(player,enemy)){
-      resetGame(); // 🔥 INSTANT RESTART
+      resetGame();
     }
   });
 }
@@ -397,7 +416,6 @@ function isColliding(a,b){
 
 playerImg.onload = ()=> loop();
 }
-
 </script>
 </body>
 </html>
