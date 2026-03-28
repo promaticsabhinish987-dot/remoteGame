@@ -22,20 +22,26 @@ io.on("connection", socket => {
     socket.emit("roomCreated", roomId);
   });
 
-  // Remote joins room
-  socket.on("joinRoom", roomId => {
-    if (rooms[roomId]) {
-      socket.join(roomId);
-      socket.emit("joinedRoom", roomId);
-    } else {
-      socket.emit("errorRoom", "Room not found");
-    }
-  });
+
+// 🔥 ADD THIS inside joinRoom
+socket.on("joinRoom", roomId => {
+  if (rooms[roomId]) {
+    socket.join(roomId);
+    socket.emit("joinedRoom", roomId);
+  } else {
+    socket.emit("errorRoom", "Room not found"); // 🔥 ADDED
+  }
+});
 
   // Remote sends input → forward to monitor
-  socket.on("input", ({ roomId, keys }) => {
-    socket.to(roomId).emit("input", keys);
-  });
+
+//(FASTER TARGETED EMIT)
+socket.on("input", ({ roomId, keys }) => {
+  const monitorId = rooms[roomId]; // 🔥 ADDED
+  if (monitorId) {
+    io.to(monitorId).emit("input", keys); // 🔥 DIRECT SEND
+  }
+});
 
   socket.on("disconnect", () => {
     console.log("Disconnected:", socket.id);
