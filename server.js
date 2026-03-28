@@ -42,14 +42,16 @@ io.on("connection", socket => {
   //   }
   // });
 
-  // 🔥 NEW FAST INPUT (ADDED)
-  socket.on("input_fast", ({ roomId, key, state }) => {
-    const monitorId = rooms[roomId];
 
-    if (monitorId) {
-      io.to(monitorId).emit("input_fast", { key, state });
-    }
-  });
+  // 🔥 ADD THIS (if not already present)
+// 🔥 ADD THIS (if not already present)
+socket.on("input_fast", ({ roomId, key, state }) => {
+  const monitorId = rooms[roomId];
+
+  if (monitorId) {
+    io.to(monitorId).emit("input_fast", { key, state });
+  }
+});
 
   socket.on("disconnect", () => {
     console.log("Disconnected:", socket.id);
