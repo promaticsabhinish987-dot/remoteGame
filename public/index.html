@@ -3,6 +3,116 @@
 <head>
   <title>Remote Game</title>
 </head>
+<style>
+   /* 🔥 RESET FOR MOBILE GAME FEEL */
+   #gameCanvas{
+      background-color: #fff;
+   }
+body {
+  margin: 0;
+  overflow: hidden;
+  background: #000;
+  touch-action: none; /* prevents scroll/zoom */
+  user-select: none;
+}
+
+/* FULLSCREEN REMOTE */
+#remoteUI {
+  display: none;
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+}
+
+/* ROOM INPUT */
+#roomInput {
+  position: absolute;
+  top: 15px;
+  left: 15px;
+  padding: 10px;
+  font-size: 16px;
+  z-index: 10;
+}
+
+#remoteUI button.connect {
+  position: absolute;
+  top: 15px;
+  left: 160px;
+  padding: 10px 15px;
+  font-size: 16px;
+  z-index: 10;
+}
+
+/* 🎮 DPAD CONTAINER */
+.dpad {
+  position: absolute;
+  bottom: 30px;
+  left: 30px;
+  width: 180px;
+  height: 180px;
+}
+
+/* 🎯 BUTTON BASE */
+.dpad button {
+  position: absolute;
+  width: 70px;
+  height: 70px;
+  font-size: 22px;
+  border-radius: 50%;
+  border: none;
+
+  background: rgba(255,255,255,0.15);
+  color: white;
+
+  backdrop-filter: blur(5px);
+
+  transition: 0.1s;
+}
+
+/* 🎮 ACTIVE PRESS EFFECT */
+.dpad button:active {
+  background: rgba(255,255,255,0.4);
+  transform: scale(0.95);
+}
+
+/* 🎯 POSITIONING LIKE REAL CONTROLLER */
+.up {
+  top: 0;
+  left: 55px;
+}
+
+.down {
+  bottom: 0;
+  left: 55px;
+}
+
+.left {
+  left: 0;
+  top: 55px;
+}
+
+.right {
+  right: 0;
+  top: 55px;
+}
+
+/* 📱 LANDSCAPE OPTIMIZATION */
+@media (orientation: landscape) {
+  .dpad {
+    bottom: 40px;
+    left: 40px;
+    transform: scale(1.2);
+  }
+}
+
+/* 📱 SMALL SCREEN BOOST */
+@media (max-width: 500px) {
+  .dpad {
+    transform: scale(1.1);
+  }
+}
+</style>
 <body>
 
 <div id="menu">
@@ -11,15 +121,15 @@
 </div>
 
 <div id="remoteUI" style="display:none;">
-  <input id="roomInput" placeholder="Enter Room ID" />
-  <button onclick="joinRemote()">Connect</button>
+<input id="roomInput" placeholder="Enter Room ID" />
+<button class="connect" onclick="joinRemote()">Connect</button>
 
-  <div>
-    <button onmousedown="press('ArrowUp')" onmouseup="release('ArrowUp')">↑</button><br/>
-    <button onmousedown="press('ArrowLeft')" onmouseup="release('ArrowLeft')">←</button>
-    <button onmousedown="press('ArrowRight')" onmouseup="release('ArrowRight')">→</button><br/>
-    <button onmousedown="press('ArrowDown')" onmouseup="release('ArrowDown')">↓</button>
-  </div>
+  <div class="dpad">
+  <button class="up" onmousedown="press('ArrowUp')" onmouseup="release('ArrowUp')">↑</button>
+  <button class="left" onmousedown="press('ArrowLeft')" onmouseup="release('ArrowLeft')">←</button>
+  <button class="right" onmousedown="press('ArrowRight')" onmouseup="release('ArrowRight')">→</button>
+  <button class="down" onmousedown="press('ArrowDown')" onmouseup="release('ArrowDown')">↓</button>
+</div>
 </div>
 
 <canvas id="gameCanvas" width="800" height="500" style="display:none;"></canvas>
@@ -42,14 +152,26 @@ function startMonitor() {
 
   socket.emit("createRoom");
 }
+// 🔥 ADD THIS
+socket.on("errorRoom", (msg) => {
+  alert(msg); // invalid room
+});
+
+// 🔥 ADD THIS (outside functions)
+setInterval(() => {
+  if (roomId) {
+    socket.emit("input", { roomId, keys });
+  }
+}, 50); // 20 FPS network tick
+
 
 socket.on("roomCreated", id => {
   roomId = id;
   alert("Room ID: " + roomId);
   console.log("Room ID: " + roomId)
-   setTimeout(() => {
+  setTimeout(() => {
    startGame(); // start your game
-   }, 10000);
+  }, 10000);
   
 });
 
@@ -75,12 +197,12 @@ const keys = {};
 
 function press(key) {
   keys[key] = true;
-  sendInput();
+//   sendInput();
 }
 
 function release(key) {
   keys[key] = false;
-  sendInput();
+//   sendInput();
 }
 
 function sendInput() {
@@ -93,8 +215,9 @@ function sendInput() {
 
 let remoteKeys = {};
 
-socket.on("input", data => {
-  remoteKeys = data;
+// 🔥 WITH (ensures correct object)
+socket.on("input", keys => {
+  remoteKeys = keys;
 });
 
 // ===== YOUR GAME (modified input) =====
@@ -124,6 +247,18 @@ function spawnEnemy(){
     size:40,
     speed:1
   });
+}
+
+// 🔥 ADD THIS
+function resetGame(){
+  player.x = 100;
+  player.y = 100;
+  score = 0;
+  enemies.length = 0;
+  foods.length = 0;
+
+  for(let i=0;i<3;i++) spawnEnemy();
+  for(let i=0;i<5;i++) spawnFood();
 }
 
 function spawnFood(){
@@ -164,7 +299,7 @@ function update(){
 
   enemies.forEach(enemy=>{
     if(isColliding(player,enemy)){
-      window.location.reload();
+      resetGame(); // 🔥 INSTANT RESTART
     }
   });
 }
