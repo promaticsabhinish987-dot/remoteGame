@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Remote Game</title>
+</head>
+<body>
+
+<div id="menu">
+  <button onclick="startMonitor()">Monitor</button>
+  <button onclick="showRemote()">Remote</button>
+</div>
+
+<div id="remoteUI" style="display:none;">
+  <input id="roomInput" placeholder="Enter Room ID" />
+  <button onclick="joinRemote()">Connect</button>
+
+  <div>
+    <button onmousedown="press('ArrowUp')" onmouseup="release('ArrowUp')">↑</button><br/>
+    <button onmousedown="press('ArrowLeft')" onmouseup="release('ArrowLeft')">←</button>
+    <button onmousedown="press('ArrowRight')" onmouseup="release('ArrowRight')">→</button><br/>
+    <button onmousedown="press('ArrowDown')" onmouseup="release('ArrowDown')">↓</button>
+  </div>
+</div>
+
+<canvas id="gameCanvas" width="800" height="500" style="display:none;"></canvas>
+
+<script src="/socket.io/socket.io.js"></script>
+
+<script>
+const socket = io();
+let roomId = null;
+let isMonitor = false;
+
+// =====================
+// MENU
+// =====================
+
+function startMonitor() {
+  isMonitor = true;
+  document.getElementById("menu").style.display = "none";
+  document.getElementById("gameCanvas").style.display = "block";
+
+  socket.emit("createRoom");
+}
+
+socket.on("roomCreated", id => {
+  roomId = id;
+  alert("Room ID: " + roomId);
+  console.log("Room ID: " + roomId)
+//   setTimeout(() => {
+   startGame(); // start your game
+//   }, 10000);
+  
+});
+
+function showRemote() {
+  document.getElementById("menu").style.display = "none";
+  document.getElementById("remoteUI").style.display = "block";
+}
+
+function joinRemote() {
+  roomId = document.getElementById("roomInput").value;
+  socket.emit("joinRoom", roomId);
+}
+
+socket.on("joinedRoom", () => {
+  alert("Connected to monitor");
+});
+
+// =====================
+// REMOTE INPUT
+// =====================
+
+const keys = {};
+
+function press(key) {
+  keys[key] = true;
+  sendInput();
+}
+
+function release(key) {
+  keys[key] = false;
+  sendInput();
+}
+
+function sendInput() {
+  socket.emit("input", { roomId, keys });
+}
+
+// =====================
+// MONITOR GAME
+// =====================
+
+let remoteKeys = {};
+
+socket.on("input", data => {
+  remoteKeys = data;
+});
+
+// ===== YOUR GAME (modified input) =====
+
+function startGame(){
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+
+const player = { x:100, y:100, size:60, speed:4 };
+const enemies = [];
+const foods = [];
+let score = 0;
+
+const playerImg = new Image();
+playerImg.src = "player.png";
+
+const enemyImg = new Image();
+enemyImg.src = "enemy.png";
+
+const foodImg = new Image();
+foodImg.src = "food.png";
+
+function spawnEnemy(){
+  enemies.push({
+    x: Math.random()*canvas.width,
+    y: Math.random()*canvas.height,
+    size:40,
+    speed:1
+  });
+}
+
+function spawnFood(){
+  foods.push({
+    x: Math.random()*canvas.width,
+    y: Math.random()*canvas.height,
+    size:25
+  });
+}
+
+for(let i=0;i<3;i++) spawnEnemy();
+for(let i=0;i<5;i++) spawnFood();
+
+function update(){
+
+  // 🔥 USE REMOTE INPUT INSTEAD OF KEYBOARD
+  if (remoteKeys["ArrowRight"]) player.x += player.speed;
+  if (remoteKeys["ArrowLeft"]) player.x -= player.speed;
+  if (remoteKeys["ArrowUp"]) player.y -= player.speed;
+  if (remoteKeys["ArrowDown"]) player.y += player.speed;
+
+  enemies.forEach(enemy=>{
+    if(enemy.x<player.x) enemy.x+=enemy.speed;
+    if(enemy.x>player.x) enemy.x-=enemy.speed;
+    if(enemy.y<player.y) enemy.y+=enemy.speed;
+    if(enemy.y>player.y) enemy.y-=enemy.speed;
+  });
+
+  foods.forEach((food,index)=>{
+    if(isColliding(player,food)){
+      foods.splice(index,1);
+      score++;
+      enemies.length=0;
+      for(let i=0;i<2;i++) spawnEnemy();
+      spawnFood();
+    }
+  });
+
+  enemies.forEach(enemy=>{
+    if(isColliding(player,enemy)){
+      window.location.reload();
+    }
+  });
+}
+
+function draw(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  ctx.drawImage(playerImg, player.x, player.y, player.size, player.size);
+
+  enemies.forEach(e=>{
+    ctx.drawImage(enemyImg, e.x, e.y, e.size, e.size);
+  });
+
+  foods.forEach(f=>{
+    ctx.drawImage(foodImg, f.x, f.y, f.size, f.size);
+  });
+
+  ctx.fillText("Score: "+score,10,20);
+}
+
+function loop(){
+  update();
+  draw();
+  requestAnimationFrame(loop);
+}
+
+function isColliding(a,b){
+  return a.x < b.x + b.size &&
+         a.x + a.size > b.x &&
+         a.y < b.y + b.size &&
+         a.y + a.size > b.y;
+}
+
+playerImg.onload = ()=> loop();
+}
+
+</script>
+</body>
+</html>
