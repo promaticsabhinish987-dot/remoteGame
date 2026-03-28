@@ -153,6 +153,10 @@ html, body {
   background: white;
 }
 
+  .dpad {
+  touch-action: none; /* 🔥 CHANGED from manipulation */
+}
+
 
 </style>
 
@@ -169,29 +173,38 @@ html, body {
 
 <div class="dpad">
   <button class="up"
-    ontouchstart="press('ArrowUp')"
-    ontouchend="release('ArrowUp')"
+    ontouchstart="press('ArrowUp'); event.preventDefault();"
+    ontouchend="release('ArrowUp'); event.preventDefault();"
+    ontouchcancel="release('ArrowUp')"
     onmousedown="press('ArrowUp')"
-    onmouseup="release('ArrowUp')">↑</button>
+    onmouseup="release('ArrowUp')"
+    onmouseleave="release('ArrowUp')">↑</button>
 
   <button class="left"
-    ontouchstart="press('ArrowLeft')"
-    ontouchend="release('ArrowLeft')"
+    ontouchstart="press('ArrowLeft'); event.preventDefault();"
+    ontouchend="release('ArrowLeft'); event.preventDefault();"
+    ontouchcancel="release('ArrowLeft')"
     onmousedown="press('ArrowLeft')"
-    onmouseup="release('ArrowLeft')">←</button>
+    onmouseup="release('ArrowLeft')"
+    onmouseleave="release('ArrowLeft')">←</button>
 
   <button class="right"
-    ontouchstart="press('ArrowRight')"
-    ontouchend="release('ArrowRight')"
+    ontouchstart="press('ArrowRight'); event.preventDefault();"
+    ontouchend="release('ArrowRight'); event.preventDefault();"
+    ontouchcancel="release('ArrowRight')"
     onmousedown="press('ArrowRight')"
-    onmouseup="release('ArrowRight')">→</button>
+    onmouseup="release('ArrowRight')"
+    onmouseleave="release('ArrowRight')">→</button>
 
   <button class="down"
-    ontouchstart="press('ArrowDown')"
-    ontouchend="release('ArrowDown')"
+    ontouchstart="press('ArrowDown'); event.preventDefault();"
+    ontouchend="release('ArrowDown'); event.preventDefault();"
+    ontouchcancel="release('ArrowDown')"
     onmousedown="press('ArrowDown')"
-    onmouseup="release('ArrowDown')">↓</button>
+    onmouseup="release('ArrowDown')"
+    onmouseleave="release('ArrowDown')">↓</button>
 </div>
+  
 </div>
 
 <canvas id="gameCanvas" width="800" height="500" style="display:none;"></canvas>
@@ -229,6 +242,9 @@ socket.on("errorRoom", (msg) => {
 //     socket.emit("input", { roomId, keys });
 //   }
 // }, 50);
+  // global fix
+  // 🔥 prevents mobile scroll interfering with touch
+document.body.addEventListener("touchstart", e => e.preventDefault(), { passive: false });
 
 
 // =====================
