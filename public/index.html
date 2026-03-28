@@ -4,115 +4,143 @@
   <title>Remote Game</title>
 </head>
 <style>
-   /* 🔥 RESET FOR MOBILE GAME FEEL */
-   #gameCanvas{
-      background-color: #fff;
-   }
-body {
+/* =====================
+   GLOBAL RESET
+===================== */
+* {
   margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  width: 100%;
+  font-family: sans-serif;
   overflow: hidden;
-  background: #000;
-  touch-action: none; /* prevents scroll/zoom */
-  user-select: none;
 }
 
-/* FULLSCREEN REMOTE */
-#remoteUI {
-  display: none;
-  position: fixed;
-  inset: 0;
-  width: 100vw;
-  height: 100vh;
+/* =====================
+   MENU
+===================== */
+#menu {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100dvh; /* dynamic viewport for mobile */
+  gap: 20px;
 }
 
-/* ROOM INPUT */
-#roomInput {
-  position: absolute;
-  top: 15px;
-  left: 15px;
-  padding: 10px;
-  font-size: 16px;
-  z-index: 10;
-}
-
-#remoteUI button.connect {
-  position: absolute;
-  top: 15px;
-  left: 160px;
-  padding: 10px 15px;
-  font-size: 16px;
-  z-index: 10;
-}
-
-/* 🎮 DPAD CONTAINER */
-.dpad {
-  position: absolute;
-  bottom: 30px;
-  left: 30px;
-  width: 180px;
-  height: 180px;
-}
-
-/* 🎯 BUTTON BASE */
-.dpad button {
-  position: absolute;
-  width: 70px;
-  height: 70px;
-  font-size: 22px;
-  border-radius: 50%;
+#menu button {
+  padding: 16px 24px;
+  font-size: 18px;
+  border-radius: 12px;
   border: none;
+  background: #222;
+  color: white;
+}
 
-  background: rgba(255,255,255,0.15);
+/* =====================
+   REMOTE UI (MOBILE FIRST)
+===================== */
+#remoteUI {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100dvh;
+  padding: 16px;
+}
+
+/* Top input section */
+#remoteUI input {
+  width: 100%;
+  padding: 14px;
+  font-size: 16px;
+  margin-bottom: 10px;
+  border-radius: 10px;
+  border: 1px solid #ccc;
+}
+
+#remoteUI .connect {
+  width: 100%;
+  padding: 14px;
+  font-size: 16px;
+  border-radius: 10px;
+  background: #007bff;
+  color: white;
+  border: none;
+  margin-bottom: 20px;
+}
+
+.dpad {
+  width: 100%;
+  max-width: 320px;
+  aspect-ratio: 1;
+  margin: auto;
+
+  display: grid;
+  grid-template-areas:
+    ". up ."
+    "left center right"
+    ". down .";
+
+  gap: 16px;
+  touch-action: manipulation;
+}
+
+.dpad button {
+  width: 100%;
+  height: 100%;
+
+  /* 🔥 key fix */
+  font-size: 6vw;
+
+  /* 🔥 minimum touch size */
+  min-width: 70px;
+  min-height: 70px;
+
+  border: none;
+  border-radius: 18px;
+  background: #222;
   color: white;
 
-  backdrop-filter: blur(5px);
-
-  transition: 0.1s;
+  box-shadow: 0 6px 15px rgba(0,0,0,0.4);
 }
 
-/* 🎮 ACTIVE PRESS EFFECT */
+/* keep positions */
+.up    { grid-area: up; }
+.left  { grid-area: left; }
+.right { grid-area: right; }
+.down  { grid-area: down; }
+
 .dpad button:active {
-  background: rgba(255,255,255,0.4);
-  transform: scale(0.95);
+  transform: scale(0.92);
+  background: #555;
 }
 
-/* 🎯 POSITIONING LIKE REAL CONTROLLER */
-.up {
-  top: 0;
-  left: 55px;
+/* Position */
+.up    { grid-area: up; }
+.left  { grid-area: left; }
+.right { grid-area: right; }
+.down  { grid-area: down; }
+
+/* Press feedback */
+.dpad button:active {
+  transform: scale(0.92);
+  background: #555;
 }
 
-.down {
-  bottom: 0;
-  left: 55px;
-}
-
-.left {
-  left: 0;
-  top: 55px;
-}
-
-.right {
-  right: 0;
-  top: 55px;
-}
-
-/* 📱 LANDSCAPE OPTIMIZATION */
-@media (orientation: landscape) {
-  .dpad {
-    bottom: 40px;
-    left: 40px;
-    transform: scale(1.2);
-  }
-}
-
-/* 📱 SMALL SCREEN BOOST */
-@media (max-width: 500px) {
-  .dpad {
-    transform: scale(1.1);
-  }
+/* =====================
+   CANVAS (GAME SCREEN)
+===================== */
+#gameCanvas {
+  width: 100vw;
+  height: 100dvh;
+  display: block;
+  background: black;
 }
 </style>
+
 <body>
 
 <div id="menu">
@@ -124,11 +152,30 @@ body {
 <input id="roomInput" placeholder="Enter Room ID" />
 <button class="connect" onclick="joinRemote()">Connect</button>
 
-  <div class="dpad">
-  <button class="up" onmousedown="press('ArrowUp')" onmouseup="release('ArrowUp')">↑</button>
-  <button class="left" onmousedown="press('ArrowLeft')" onmouseup="release('ArrowLeft')">←</button>
-  <button class="right" onmousedown="press('ArrowRight')" onmouseup="release('ArrowRight')">→</button>
-  <button class="down" onmousedown="press('ArrowDown')" onmouseup="release('ArrowDown')">↓</button>
+<div class="dpad">
+  <button class="up"
+    ontouchstart="press('ArrowUp')"
+    ontouchend="release('ArrowUp')"
+    onmousedown="press('ArrowUp')"
+    onmouseup="release('ArrowUp')">↑</button>
+
+  <button class="left"
+    ontouchstart="press('ArrowLeft')"
+    ontouchend="release('ArrowLeft')"
+    onmousedown="press('ArrowLeft')"
+    onmouseup="release('ArrowLeft')">←</button>
+
+  <button class="right"
+    ontouchstart="press('ArrowRight')"
+    ontouchend="release('ArrowRight')"
+    onmousedown="press('ArrowRight')"
+    onmouseup="release('ArrowRight')">→</button>
+
+  <button class="down"
+    ontouchstart="press('ArrowDown')"
+    ontouchend="release('ArrowDown')"
+    onmousedown="press('ArrowDown')"
+    onmouseup="release('ArrowDown')">↓</button>
 </div>
 </div>
 
